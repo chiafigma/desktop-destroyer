@@ -1,0 +1,11 @@
+{
+  "1-hammer": { "w": 157, "h": 160, "hotspot": { "x": 78, "y": 80 } },
+  "2-chainsaw": { "w": 160, "h": 56, "hotspot": { "x": 80, "y": 28 } },
+  "3-machinegun": { "w": 160, "h": 138, "hotspot": { "x": 80, "y": 69 } },
+  "4-flamethrower": { "w": 157, "h": 160, "hotspot": { "x": 78, "y": 80 } },
+  "5-colorthrower": { "w": 157, "h": 160, "hotspot": { "x": 78, "y": 80 } },
+  "6-phaser": { "w": 150, "h": 160, "hotspot": { "x": 75, "y": 80 } },
+  "7-stamp": { "w": 81, "h": 160, "hotspot": { "x": 40, "y": 80 } },
+  "8-termites": { "w": 160, "h": 132, "hotspot": { "x": 80, "y": 66 } },
+  "9-washing": { "w": 146, "h": 160, "hotspot": { "x": 73, "y": 80 } }
+}

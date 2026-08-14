@@ -1,0 +1,15 @@
+{
+  name: "Desktop Destroyer",
+  command: "desktopdestroyer",
+
+  solo: true,
+
+  clear: true,
+  maximizable: false,
+  minimizable: false,
+  maximized: true,
+  animation: false,
+
+  about: "./about.md",
+  document: "./index.html",
+}

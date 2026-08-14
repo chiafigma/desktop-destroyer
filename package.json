@@ -1,0 +1,23 @@
+{
+  "name": "desktop-destroyer",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Desktop Destroyer for Figma. Pick a weapon, wield it over the canvas, leave a mess.",
+  "type": "module",
+  "scripts": {
+    "assets": "./scripts/normalize-icons.sh",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.ui.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "check": "npm run build && npm run verify && npm run typecheck && npm run test",
+    "test": "tsx --test \"src/shared/**/*.test.ts\"",
+    "verify": "node scripts/verify-sheets.mjs"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.109.0",
+    "@types/node": "^26.2.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.0"
+  }
+}

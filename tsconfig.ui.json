@@ -1,0 +1,12 @@
+{
+  // UI thread. A real browser iframe, so DOM is in — this side owns base64 decoding,
+  // canvas sheet slicing and audio. `types: []` keeps @figma/plugin-typings out, so
+  // the compiler rejects any accidental reach for the `figma` global from here.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["src/ui/**/*", "src/shared/**/*", "src/generated/**/*"],
+  "exclude": ["**/*.test.ts"]
+}

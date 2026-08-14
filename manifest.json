@@ -1,0 +1,14 @@
+{
+  "name": "Desktop Destroyer",
+  "id": "desktop-destroyer-local",
+  "api": "1.0.0",
+  "main": "dist/main.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma", "figjam"],
+  "documentAccess": "dynamic-page",
+  "permissions": ["activeusers", "currentuser"],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "reasoning": "All sprites and sounds are inlined into the bundle at build time. The plugin never talks to the network."
+  }
+}

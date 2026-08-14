@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /*__CSS__*/
+    </style>
+  </head>
+  <body>
+    <!-- The whole menu is authored at the original 240x200 and scaled up as one
+         unit, so every measurement in the CSS is a real original pixel. -->
+    <div id="screen" class="screen">
+      <div id="grid" class="grid"></div>
+      <div class="divider"></div>
+      <!-- The original's footer read "right button = back / Esc = quit". Neither can
+           work here: while the cursor is over the canvas the iframe has no keyboard
+           focus, so Esc goes to Figma, and a canvas right-click opens Figma's own
+           context menu without the iframe ever seeing it. Clicks work regardless of
+           focus, so the bar carries controls that actually do something. -->
+      <!-- The probe is a developer diagnostic, not a toy control, so it has no button
+           in the footer. It is still reachable with P while the panel has focus. -->
+      <div class="footer">
+        <button id="clear" type="button">clear</button>
+      </div>
+      <div id="probe" class="probe" hidden></div>
+    </div>
+    <script>
+      /*__JS__*/
+    </script>
+  </body>
+</html>

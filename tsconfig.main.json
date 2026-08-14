@@ -1,0 +1,15 @@
+{
+  // Main thread (Figma plugin sandbox). DOM is deliberately absent from `lib`: the
+  // sandbox is not a browser. If DOM were in lib, TypeScript would happily accept
+  // `atob`, `document`, `Image` and `requestAnimationFrame`, none of which exist
+  // there — the code would compile clean and blow up at runtime. Excluding DOM
+  // makes the compiler enforce the real surface, which is why sprite decoding and
+  // sheet slicing live on the UI side instead.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "types": ["@figma/plugin-typings"]
+  },
+  "include": ["src/main/**/*", "src/shared/**/*"],
+  "exclude": ["**/*.test.ts"]
+}

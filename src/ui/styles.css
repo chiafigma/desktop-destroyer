@@ -1,0 +1,201 @@
+/*
+ * A replica of the original 240x200 weapon menu.
+ *
+ * Every length below is an original pixel. The whole screen is then scaled as one
+ * unit via `--scale`, which is why the 1px divider stays 1 original pixel rather
+ * than drifting to 1.5 at some other size. Colours are sampled straight out of a
+ * screenshot of the real thing: #270057 ground, #6E862A rule, yellow footer.
+ */
+
+:root {
+  --scale: 2;
+  --ground: #270057;
+  --rule: #6e862a;
+  --label: #ffffff;
+  --hotkey: #dfd800;
+  --armed: #dfd800;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--ground);
+  overflow: hidden;
+  /* 240x200 at --scale. Must match UI_SIZE in src/main/index.ts. */
+  width: calc(240px * var(--scale));
+  height: calc(200px * var(--scale));
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.screen {
+  position: relative;
+  width: 240px;
+  height: 200px;
+  background: var(--ground);
+  transform: scale(var(--scale));
+  transform-origin: top left;
+  /* The original had no font smoothing to speak of. */
+  font-family: 'MS Sans Serif', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: bold;
+  font-size: 7px;
+  -webkit-font-smoothing: none;
+}
+
+/* --- the 3x3 weapon grid -------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  grid-template-rows: repeat(3, 60px);
+  width: 240px;
+  height: 180px;
+}
+
+/*
+ * Bands measured off the original screenshot rather than guessed. Scanning it for
+ * non-background rows puts the icon art at y 3-41 within each 60px cell and the
+ * label glyphs at y 47-53, consistently across all three rows. Absolute placement
+ * reproduces that; flex centring drifted the labels ~3px low.
+ */
+.cell {
+  position: relative;
+  cursor: pointer;
+}
+
+.cell img {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 74px;
+  height: 38px;
+  /* `contain`, not `cover`: the normalized icons keep their own aspect and the
+     chain-saw is 2.8:1 — stretching it to the band would be obvious. */
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.cell span {
+  position: absolute;
+  top: 45px;
+  left: 0;
+  width: 80px;
+  text-align: center;
+  color: var(--label);
+  white-space: nowrap;
+  /* 8px, not the 7px the glyph height suggests: the original's bitmap font is far
+     wider per character than Tahoma, and matching the label's overall width reads
+     as more faithful than matching its cap height. "4: Flame-thrower" is the
+     widest label and still clears the 80px cell. */
+  font-size: 8px;
+  line-height: 9px;
+  pointer-events: none;
+}
+
+/* Weapons with no sprite art yet. Still listed, as in the original menu, but
+   visibly not on offer. */
+.cell.unavailable {
+  cursor: not-allowed;
+}
+
+.cell.unavailable img {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+
+.cell.unavailable span {
+  opacity: 0.4;
+}
+
+.cell.armed::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 1px solid var(--armed);
+  pointer-events: none;
+}
+
+/* --- rule and footer ------------------------------------------------------ */
+
+.divider {
+  position: absolute;
+  top: 180px;
+  left: 0;
+  width: 240px;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* In the original the two hints sit at x 34-119 and x 152-195 — a 33px gap, and the
+   pair sits marginally left of true centre. Close enough to centre it and match the
+   gap. */
+.footer {
+  position: absolute;
+  top: 181px;
+  left: 0;
+  width: 240px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 33px;
+  font-size: 8px;
+  color: var(--hotkey);
+}
+
+/* Styled to read as the original's plain yellow footer text rather than as buttons,
+   since that is the look being replicated. They are <button>s for the keyboard and
+   accessibility semantics, not for the chrome. */
+.footer button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.footer button:hover {
+  color: #fff;
+}
+
+.footer button.on {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* --- diagnostics overlay (P) --------------------------------------------- */
+
+.probe {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 0, 24, 0.95);
+  color: #b8f0b8;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 6px;
+  font-weight: normal;
+  line-height: 10px;
+  padding: 8px;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.probe b {
+  color: var(--hotkey);
+}
+
+.probe .bad {
+  color: #ff7a7a;
+}
+
+.probe .good {
+  color: #7dff9b;
+}
