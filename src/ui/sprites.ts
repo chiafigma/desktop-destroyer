@@ -127,22 +127,42 @@ function passThrough(key: string): FramePayload | null {
 }
 
 /**
- * Re-encodes one still with its hues rotated, producing the `${key}@${deg}` frame the
- * colour thrower draws.
+ * Below this spread between the RGB channels a pixel counts as grey.
  *
- * The rotation is done here rather than on the Figma node because an image fill has no
- * hue control — `ImagePaint.filters` offers saturation and temperature, neither of
- * which can turn magenta into green. Baking a handful of recoloured copies at startup
- * costs a few small uploads and then nothing at all per impact.
+ * The splats contain exactly one chromatic colour and three greys — black outline, white
+ * highlight, half-alpha shadow — so "has any chroma" identifies the paint exactly. The
+ * threshold is not there to separate close colours; it is slack against a canvas that
+ * colour-manages what it decodes, so a pure red that comes back as (254,1,1) is still
+ * recognised. Nothing in these sprites sits anywhere near it.
  */
-async function tintStill(
-  key: string,
-  degrees: number,
-  saturation: number,
-): Promise<FramePayload | null> {
+const GREY_CHROMA = 24;
+
+/**
+ * Re-encodes one still with its paint replaced, producing the `${key}@${rrggbb}` frame
+ * the colour thrower draws.
+ *
+ * Done here rather than on the Figma node because an image fill cannot recolour:
+ * `ImagePaint.filters` offers saturation and temperature, neither of which turns red into
+ * blue. Baking a handful of copies at startup costs a few small uploads and then nothing
+ * at all per impact.
+ *
+ * Per-pixel rather than a canvas filter, because the filter was the bug — see `paints` in
+ * the weapon schema for why `hue-rotate` cannot do this job. Every chromatic pixel is
+ * written to the target colour flat, which is right for flat art: the paint carries no
+ * shading to preserve, and the parts that do the shading are grey and left alone.
+ */
+async function paintStill(key: string, hex: string): Promise<FramePayload | null> {
   const src = W93[key];
   if (!src) {
     console.warn(`sprite missing: ${key}`);
+    return null;
+  }
+
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    console.error(`[desktop-destroyer] paint "${hex}" is not rrggbb`);
     return null;
   }
 
@@ -153,11 +173,37 @@ async function tintStill(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('no 2d context');
   ctx.imageSmoothingEnabled = false;
-  ctx.filter = `saturate(${saturation}) hue-rotate(${degrees}deg)`;
   ctx.drawImage(img, 0, 0);
 
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const px = image.data;
+  let repainted = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    // Fully transparent pixels are skipped rather than repainted. These sheets key their
+    // transparency to a magenta that is chromatic enough to match below, and painting
+    // invisible pixels would be harmless but for one thing: it is what made the palette
+    // look like it held a muted magenta paint in the first place.
+    if (px[i + 3] === 0) continue;
+
+    const max = Math.max(px[i]!, px[i + 1]!, px[i + 2]!);
+    const min = Math.min(px[i]!, px[i + 1]!, px[i + 2]!);
+    if (max - min < GREY_CHROMA) continue;
+
+    px[i] = r;
+    px[i + 1] = g;
+    px[i + 2] = b;
+    repainted++;
+  }
+
+  // Zero means the sprite had no paint to replace and every colour this weapon throws
+  // will be identical. Loud, because the result is a colour thrower that throws one
+  // colour — which is the exact bug this whole mechanism exists to prevent.
+  if (repainted === 0) console.error(`[desktop-destroyer] ${key}: no chromatic pixels to repaint`);
+
+  ctx.putImageData(image, 0, 0);
+
   return {
-    key: `${key}@${degrees}`,
+    key: `${key}@${hex}`,
     bytes: await toPng(canvas),
     w: img.naturalWidth,
     h: img.naturalHeight,
@@ -210,17 +256,15 @@ export async function buildFrames(): Promise<FramePayload[]> {
       const frame = passThrough(key);
       if (frame) frames.push(frame);
 
-      // Every angle is baked, including 0. It is tempting to skip 0 as a no-op and let
-      // it fall back to the untinted frame, but with `tintSaturation` in play 0 is not a
-      // no-op at all — it is the unrotated hue at full strength, and skipping it would
-      // make the one angle that falls back the one angle that stays muted.
-      const saturation = art.tintSaturation ?? 1;
-      for (const degrees of art.tints ?? []) {
+      // Every colour is baked, including one identical to the shipped paint if the
+      // palette lists it. Skipping it as a no-op would mean one colour in the set
+      // resolving to a differently-named frame, and `impact` has no fallback path.
+      for (const hex of art.paints ?? []) {
         try {
-          const tinted = await tintStill(key, degrees, saturation);
-          if (tinted) frames.push(tinted);
+          const painted = await paintStill(key, hex);
+          if (painted) frames.push(painted);
         } catch (err) {
-          console.error(`[desktop-destroyer] ${weapon.id}: tint ${degrees} of ${key} failed`, err);
+          console.error(`[desktop-destroyer] ${weapon.id}: paint ${hex} of ${key} failed`, err);
         }
       }
     }

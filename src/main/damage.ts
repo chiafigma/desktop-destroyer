@@ -316,10 +316,10 @@ export function impact(weapon: Weapon, p: Point): boolean {
   const base = pick(art.hits);
   if (!base) return false;
 
-  // A tinted weapon draws `${hit}@${deg}`; the slicer baked one frame per angle,
-  // including 0, so there is no untinted fallback to fall through to.
-  const degrees = pick(art.tints ?? []);
-  const key = degrees === null ? base : `${base}@${degrees}`;
+  // A repainted weapon draws `${hit}@${rrggbb}`; the slicer baked one frame per colour,
+  // so there is no as-shipped frame to fall through to.
+  const hex = pick(art.paints ?? []);
+  const key = hex === null ? base : `${base}@${hex}`;
 
   const fill = fillFor(key);
   if (!fill) {
@@ -411,7 +411,7 @@ export function flushMarks(): void {
  * button visibly not working. This is why the two drains are separate functions rather
  * than one — the same pending mark wants opposite treatment depending on what stopped it.
  */
-export function discardMarks(): void {
+function discardMarks(): void {
   drainMarks(false);
 }
 

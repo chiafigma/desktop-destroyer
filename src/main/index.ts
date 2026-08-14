@@ -147,6 +147,7 @@ function arm(weaponId: string): void {
   // burning by the old one. It also keeps `damage.ts` able to drive every live flame from
   // a single timer, which is only sound while they all belong to one weapon.
   damage.clearFlames();
+  damage.flushMarks();
 
   armed = weapon;
   residual = 0;
@@ -166,8 +167,10 @@ function disarm(): void {
   firing = false;
   stopIdleAnimation();
   // Putting the weapon away puts the fire out. Anything still burning belongs to a
-  // trigger that is no longer held.
+  // trigger that is no longer held, and any scorch still owed is drawn now rather than
+  // landing on a canvas with no weapon over it.
   damage.clearFlames();
+  damage.flushMarks();
   // The probe needs the poll loop even with nothing armed, so only stop it if the
   // probe is not the one keeping it alive.
   if (probeTimer === null) tracker.stop();
@@ -242,6 +245,9 @@ figma.on('currentpagechange', () => {
   // again once `flames` is rebuilt from impacts on the new one. Put them out here rather
   // than leaving a frozen fireball behind on a page the user has walked away from.
   damage.clearFlames();
+  // Before `showCursor` switches us to the new page: these marks belong to the page they
+  // were fired at, and `place` appends to whatever is current when it runs.
+  damage.flushMarks();
   damage.showCursor(armed);
   residual = 0;
   firing = false;
@@ -257,6 +263,8 @@ figma.on('close', () => {
   // Flames do not stay. A fireball is a frame of an animation, not a mark, so one left
   // behind is litter the user never asked for and would have to hunt down by hand.
   damage.clearFlames();
+  // Scorches do stay, so anything still owed is drawn before the timers die with us.
+  damage.flushMarks();
   damage.hideCursor();
 });
 

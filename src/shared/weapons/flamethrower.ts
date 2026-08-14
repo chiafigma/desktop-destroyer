@@ -97,6 +97,21 @@ export const flamethrower: Weapon = {
       '3-flame-thrower/hit-4',
     ],
     hitSize: 48,
+
+    // The fire has to get there first. Drawn on the same tick as the flame, the scorch
+    // wins on every count that matters to the eye — it is near-black against a bright
+    // orange, it is at full size instantly while the fireball spends 264ms growing into
+    // one, and it stays. The weapon read as a black marker that happened to flicker.
+    //
+    // 200ms lands the char just before the flame peaks, so the order you see is fire then
+    // aftermath. It also means the scorch trail sits about three impacts behind the
+    // nozzle during a drag, which is the fire burning ahead of what it has already
+    // blackened — the right way round.
+    //
+    // If the black is still too dominant, this is the wrong knob to keep turning: past
+    // the flame's 384ms life the char just looks disconnected from anything. Reach for
+    // `hitSize` (smaller scorches) or `minTravel` (fewer of them) instead.
+    hitDelayMs: 200,
   },
 };
 

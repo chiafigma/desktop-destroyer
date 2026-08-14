@@ -36,7 +36,7 @@ A Figma plugin is two runtimes, and this one splits work strictly by which capab
 │  ✗ no canvas, no atob        │         │                               │
 │  ✗ no audio                  │         │                               │
 │                              │         │  menu, sprite slicing,        │
-│  polls cursor, makes nodes   │         │  hue baking, sound            │
+│  polls cursor, makes nodes   │         │  paint baking, sound          │
 └──────────────────────────────┘         └───────────────────────────────┘
 ```
 
@@ -198,13 +198,13 @@ So the timer ticks at `cursorUpRateMs` for weapons that animate and at `IDLE_AFT
 
 `figma.createImage(bytes)` returns a hash, and any number of fills can share one hash. So every sprite frame is uploaded exactly once at startup into a `key → hash` map, and from then on a mark is just a cheap rectangle pointing at an existing hash. A hundred marks cost a hundred rectangles, not a hundred uploads.
 
-Frame keys are `${sheetKey}#${frame},${state}` for sliced cells, a bare `${key}` for whole stills, and `${key}@${degrees}` for a hue-rotated copy.
+Frame keys are `${sheetKey}#${frame},${state}` for sliced cells, a bare `${key}` for whole stills, and `${key}@${rrggbb}` for a repainted copy.
 
 Fills use `scaleMode: 'FIT'`, not `'FILL'`. Sprite cells are not all square — the flame thrower's are 319x255 — and `FILL` would crop them to the node's square bounds, clipping the artwork. `FIT` letterboxes instead, and the padding is transparent anyway.
 
 ### A mark is one node, one fill, placed once
 
-There is no impact animation. A hit picks a sprite at random from the weapon's `hits`, picks a hue if the weapon has `tints`, creates one rectangle, sets one fill, and walks away. No timers, no frame chains.
+There is no impact animation. A hit picks a sprite at random from the weapon's `hits`, picks a colour if the weapon has `paints`, creates one rectangle, sets one fill, and walks away. No timers, no frame chains.
 
 This matches the original — which also just leaves one of N marks — and it is the cheapest possible thing to do to a Figma document, which matters because the plugin's entire purpose is to create a great many of them.
 
@@ -297,7 +297,7 @@ main: showUI
 ui:   buildGrid, send 'ui-ready'
   ↓
 ui:   buildFrames()  ── decode base64 → <img> → canvas slice → PNG bytes
-  ↓                    ── bake one hue-rotated copy per tint
+  ↓                    ── bake one repainted copy per paint
   ↓                    (async; the menu is already interactive here, but
   ↓                     tiles refuse to arm until it finishes)
 ui:   send 'sprites' with every frame

@@ -13,8 +13,8 @@ import type { Weapon } from './types';
  * gun visibly changes colour at rest, so getting the frame order right matters more
  * here than elsewhere.
  *
- * The marks it leaves get their variety from `tints`, not from the sprites: all five
- * splats ship with one identical palette. See the note on that field.
+ * The marks it leaves get their variety from `paints`, not from the sprites: all five
+ * splats ship as the same pure red. See the note on that field.
  *
  * Sprite geometry below is measured from the real files in ref/w93/4-color-thrower/ and is
  * not guesswork. `fireRateMs`, `minTravel` and `dispersion` ARE tuning values and
@@ -27,10 +27,15 @@ export const colorthrower: Weapon = {
   icon: '5-colorthrower',
 
   // Slow and widely spaced, unlike the flame thrower it shares geometry with. A 128px
-  // splat laid down every 16px was a solid band of paint that read as one smear; at 95px
-  // the splats overlap at their edges and stay legible as individual throws.
-  fireRateMs: 200,
-  minTravel: 95,
+  // splat laid down every 16px was a solid band of paint that read as one smear.
+  //
+  // 95px was the first attempt at fixing that, and it undershot: splats that overlap by a
+  // third still merge into a chain, and because each one is drawn over the last the colour
+  // variety is mostly hidden under the next throw. At 150px — just past the 128px splat —
+  // they land as separate throws that occasionally kiss, every splat shows its whole
+  // shape, and all eight colours are visible at once instead of eight overlapping arcs.
+  fireRateMs: 260,
+  minTravel: 150,
   dispersion: 10,
   cursorUpRateMs: 200,
   // Same sheet geometry as the flame thrower, byte for byte, so the same nozzle tip
@@ -54,26 +59,40 @@ export const colorthrower: Weapon = {
       '4-color-thrower/hit-5',
     ],
     /**
-     * Eight hues, giving 5 splats x 8 colours = 40 distinct marks.
+     * Eight poster-paint colours, giving 5 splats x 8 colours = 40 distinct marks.
      *
-     * Necessary because all five hit sprites share one identical five-colour palette —
-     * magenta (149,34,140), red, black and white — so without this the "colour thrower"
-     * throws five *shapes* in exactly the same colour, which is the one thing its name
-     * promises it will not do.
+     * Necessary because all five hit sprites are the same paint in five shapes, which is
+     * the one thing this weapon's name promises they will not be. The palette is exactly
+     * five colours and only one of them is chromatic:
      *
-     * Hue rotation rather than a recolour: black outline and white highlight have no
-     * saturation, so they are left untouched while the magenta and red sweep round the
-     * wheel. Evenly spaced at 45 degrees.
+     *   (255,  0,  0, 255)  the paint — pure red
+     *   (149, 34,140,   0)  transparent; the magenta is just this palette's colour key
+     *   (  0,  0,  0, 128)  drop shadow
+     *   (  0,  0,  0, 255)  outline
+     *   (255,255,255, 255)  highlight
      *
-     * 0 is listed because this array is also what a hit draws its angle from, and with
-     * `tintSaturation` set it is not a no-op — it is the unrotated hue at full strength.
-     * Leave it out and the original magenta is the one colour never thrown.
+     * That second entry is worth dwelling on, because reading it as the paint is what
+     * produced the muddy version of this weapon. It has alpha 0 — it is never drawn. The
+     * paint was never a muted magenta needing a saturation boost; it was pure red all
+     * along, and `tintSaturation: 2.2` was a no-op on it (the saturate matrix clips
+     * straight back to 255,0,0). The mud came entirely from `hue-rotate` — see `paints`
+     * in the schema.
+     *
+     * Chosen as a primary/secondary wheel rather than eight even steps of anything: this
+     * is a toy about throwing paint, so the reference is a paintbox, and the colours that
+     * read as paint are the ones a paintbox has. Red is kept as shipped so the original
+     * splat is still in the set.
      */
-    tints: [0, 45, 90, 135, 180, 225, 270, 315],
-    // The shipped magenta is (149,34,140) — muted enough that eight rotations of it
-    // produced eight muted colours. 2.2 pushes them to poster paint, which is what a
-    // weapon called the colour thrower should be throwing.
-    tintSaturation: 2.2,
+    paints: [
+      'ff0000', // red
+      'ff7a00', // orange
+      'ffdd00', // yellow
+      '2bd600', // green
+      '00b4ff', // sky
+      '1040ff', // blue
+      '9b1fff', // violet
+      'ff00a0', // magenta
+    ],
     hitSize: 128,
   },
 };

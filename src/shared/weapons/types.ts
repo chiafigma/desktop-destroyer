@@ -74,30 +74,29 @@ export type WeaponArt = {
    */
   extraSheets?: Sheet[];
   /**
-   * Hue rotations, in degrees, to generate recoloured copies of every entry in
-   * `hits`. The slicer emits one extra frame per hit per angle, keyed `${hit}@${deg}`,
-   * and a hit picks an angle at random alongside its sprite.
+   * Colours to repaint every entry in `hits` into, as `rrggbb` with no leading `#`. The
+   * slicer emits one extra frame per hit per colour, keyed `${hit}@${rrggbb}`, and a hit
+   * picks a colour at random alongside its sprite.
    *
-   * This exists because the colour thrower's five splats ship with one identical
-   * five-colour palette, so the weapon throws five *shapes* in the same colour. Hue
-   * rotation is the right tool rather than a tint overlay: it leaves greys alone,
-   * because they have no saturation to rotate — so the black outline and the white
-   * highlight survive untouched while only the paint moves.
+   * This exists because the colour thrower's five splats are five *shapes* in one
+   * colour — pure red — so without it the weapon throws the same paint five ways.
+   *
+   * **Stated as target colours rather than hue rotations, deliberately.** This used to be
+   * `tints: number[]` of degrees applied with the canvas `hue-rotate` filter, which is
+   * where the muddy output came from: CSS `hue-rotate` is not a hue rotation. It is a
+   * fixed luminance-preserving matrix approximation, and on a fully saturated input it
+   * collapses the result — pure red at 90 degrees is `#005b00`, a near-black green, and
+   * at 180 it is `#006d6d` teal. Eight angles produced eight dark, muddy paints that no
+   * amount of saturation could rescue, because the damage is done by the matrix.
+   *
+   * Naming the colour means what ships is what was chosen. It is also exact: the splats
+   * hold precisely one chromatic colour, so the repaint replaces every pixel that has
+   * any chroma at all and leaves the greys — black outline, white highlight, the
+   * half-alpha drop shadow — untouched by construction rather than by approximation.
    *
    * Absent or empty means the sprites are used exactly as shipped.
    */
-  tints?: number[];
-  /**
-   * Saturation multiplier applied along with `tints`. 1 leaves the sprite as shipped.
-   *
-   * The upstream splats are muted — their magenta is (149,34,140), which is closer to
-   * grey than to paint. Rotating a dull colour only produces eight dull colours, so the
-   * boost is what makes the difference read as *colour* rather than as tinting.
-   *
-   * Because greys have no saturation to multiply, this leaves the outline and highlight
-   * alone exactly as the hue rotation does.
-   */
-  tintSaturation?: number;
+  paints?: string[];
   /**
    * The flash at the muzzle: a short animation played at the impact point and then
    * removed, leaving nothing behind. Upstream's `fireFrames`, which loads `press.png`

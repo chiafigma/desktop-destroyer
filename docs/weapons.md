@@ -58,8 +58,7 @@ art: {
     from: 4,                        // first frame worth drawing
   },
 
-  tints: [0, 45, 90, …],            // hue rotations to bake, degrees
-  tintSaturation: 2.2,              // saturation multiplier applied with them
+  paints: ['ff0000', 'ff7a00', …], // colours to repaint the paint into
   cut: { width: 6 },                // continuous line along the path, not points
 
   hitSize: 64,                      // square edge to draw a mark at, canvas px
@@ -129,7 +128,7 @@ gun (`fireFrames: 14`, a 434x31 sheet of 31x31 cells) and the colour thrower
 | 2 | `chainsaw` | 60 | 12 | 14 | 120 | -95, -95 | 31 |
 | 3 | `machinegun` | 110 | 40 | 9 | 0 | 0, 0 | 16 |
 | 4 | `flamethrower` | 70 | 16 | 6 | 75 | -107, -110 | 48 |
-| 5 | `colorthrower` | 200 | 95 | 10 | 200 | -107, -110 | 128 |
+| 5 | `colorthrower` | 260 | 150 | 10 | 200 | -107, -110 | 128 |
 | 6 | `phaser` | 320 | 80 | 0 | 0 | -63, -63 | 128 |
 | 7 | `stamp` | 260 | 130 | 0 | 0 | -48, -209 | 96 |
 | 8 | `termites` | 120 | 55 | 18 | 150 | -30, -55 | 31 |
@@ -396,26 +395,56 @@ accounted for, not because it appears.
 Read [the swarm has no cap](architecture.md#the-swarm-has-no-cap) before raising the
 termite fire rate.
 
-### `tints` — the colour thrower recolours itself
+### `paints` — the colour thrower recolours itself
 
-All five of the colour thrower's splats ship with one identical five-colour palette —
-magenta (149,34,140), red, black and white. So without help, the "colour thrower" throws
-five *shapes* in exactly the same colour, which is the one thing its name promises it
-will not do.
+All five of the colour thrower's splats are the same paint in five shapes, so without help
+the "colour thrower" throws one colour, which is the one thing its name promises it will
+not do. The palette is exactly five colours and only one of them is chromatic:
 
-`tints: [0, 45, …, 315]` bakes a hue-rotated copy of every hit at slice time, keyed
-`${hit}@${deg}`, giving 5 splats x 8 hues = 40 distinct marks. A hit picks a sprite and an
-angle independently.
+| RGBA | Role |
+| --- | --- |
+| `(255, 0, 0, 255)` | the paint — **pure red** |
+| `(149, 34, 140, 0)` | transparent; the magenta is only this palette's colour key |
+| `(0, 0, 0, 128)` | drop shadow |
+| `(0, 0, 0, 255)` | outline |
+| `(255, 255, 255, 255)` | highlight |
 
-Hue rotation rather than a tint overlay, because greys have no saturation to rotate: the
-black outline and white highlight survive untouched while only the paint moves.
-`tintSaturation: 2.2` is applied alongside, because the upstream magenta is closer to grey
-than to paint and rotating a dull colour only yields eight dull colours.
+`paints: ['ff0000', 'ff7a00', …]` bakes a repainted copy of every hit at slice time, keyed
+`${hit}@${rrggbb}`, giving 5 splats x 8 colours = 40 distinct marks. A hit picks a sprite
+and a colour independently. Every pixel with any chroma is written to the target colour;
+the three greys are left alone, so outline, highlight and shadow survive by construction.
 
-**`0` must be listed even though it looks like a no-op.** With `tintSaturation` in play it
-is not one — it is the unrotated hue at full strength. Every listed angle is baked,
-including 0, and there is no untinted fallback; omit it and the shipped magenta becomes
-the one colour never seen.
+#### Why this is not `hue-rotate`
+
+It was, and that is where the muddy version of this weapon came from. **CSS `hue-rotate` is
+not a hue rotation.** It is a fixed luminance-preserving matrix approximation, and it
+mangles saturated inputs. Applied to pure red:
+
+| Angle | Result | Reads as |
+| --- | --- | --- |
+| 0 | `#ff0000` | red |
+| 45 | `#9e2a00` | brown |
+| 90 | `#005b00` | near-black green |
+| 135 | `#007700` | dark green |
+| 180 | `#006d6d` | teal |
+| 225 | `#0043eb` | blue |
+| 270 | `#6d12ff` | violet |
+| 315 | `#eb009e` | pink |
+
+Five of eight land dark and muddy, and no saturation boost recovers them because the
+matrix has already collapsed the luminance.
+
+Two mistakes compounded it, both worth recognising elsewhere:
+
+- **The transparent entry was read as the paint.** `(149,34,140)` has alpha 0 — it is never
+  drawn. The paint was never a muted magenta; it was pure red all along.
+- **So the fix was aimed at the wrong thing.** `tintSaturation: 2.2` existed to rescue that
+  imagined dull magenta, and on pure red it is a no-op — the saturate matrix clips straight
+  back to `(255,0,0)`. It shipped looking like a knob that was doing something.
+
+Naming target colours instead means what ships is what was chosen. Pick them like a
+paintbox rather than as even steps around a wheel: this is a toy about throwing paint, and
+the colours that read as paint are the ones a paintbox has.
 
 ## Adding a weapon
 

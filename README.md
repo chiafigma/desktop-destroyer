@@ -1,7 +1,14 @@
 # Desktop Destroyer for Figma
 
-Pick a weapon from the 3x3 menu, wield it over the Figma canvas, leave a mess of
-real nodes behind.
+![Desktop Destroyer](cover.png)
+
+The 1990s freeware stress-reliever, rebuilt as a Figma plugin. Pick a weapon from the
+3x3 menu, drag it across your canvas, and leave a mess of real Figma nodes behind.
+
+Nine weapons: hammer, chain-saw, machine gun, flame-thrower, colour-thrower, phaser,
+stamp, termites, and a washing sponge. All nine work, in **Figma Design and FigJam**.
+
+## Try it
 
 ```
 npm install
@@ -11,151 +18,81 @@ npm run build
 Then in Figma: **Plugins → Development → Import plugin from manifest…** and choose
 `manifest.json`.
 
-Works in **Figma Design and FigJam** — same code, no per-editor branching. See
-[Both editors](#both-editors).
+## How to play
 
-## How it works
+1. **Click a weapon** to arm it. It appears on the canvas and follows your cursor.
+2. **Drag across the canvas.** Damage appears as you move.
+3. **Click the same weapon again** to holster it.
+4. **`clear`** in the footer wipes the mess.
 
-Figma has no pointer event for the canvas, and the plugin UI's own `mousemove` stops
-at the iframe edge. The only route to a canvas cursor is `figma.activeUsers[].position`,
-which has to be polled — so the plugin polls it every 30ms, diffs consecutive samples,
-and treats the movement between them as a segment to lay damage along.
+| Input | Does |
+| --- | --- |
+| Click a weapon | Arm it. Click it again to holster. |
+| `clear` (footer) | Remove every mark the plugin has ever left |
+| `1`–`9` | Arm by slot |
+| `C` | Clear |
+| `P` | Cursor-tracking diagnostics |
 
-Three consequences shape the whole design:
+Keyboard shortcuts only fire while the plugin window itself holds focus — and the moment
+your cursor moves onto the canvas, which is the entire point of this plugin, Figma gets
+the keystroke instead. So the shortcuts are a convenience and never the only route to
+anything. Everything that matters is one click away in the menu.
 
-**Distance, not time, is the trigger.** We can see *where* the cursor is but never
-*whether the button is down*. Gating on time alone would bore a hole through the canvas
-while the mouse sat still, so a weapon instead spends travel: one mark per `minTravel`
-canvas pixels, with unspent distance carried between samples so spacing stays even
-however coarsely the samples arrive. See `src/shared/trail.ts`.
+### Two things that will surprise you
 
-`fireRateMs` still exists, but it decides only *whether* a sample may fire at all —
-never how many marks it produces. That division matters more than it sounds; see
-[the firing loop](docs/architecture.md#the-firing-loop).
+**There is no "hold to fire."** Figma doesn't tell plugins where your cursor is over the
+canvas, and it certainly doesn't say whether the button is down — the plugin infers your
+cursor from the multiplayer presence channel, which reports position and nothing else. So
+weapons fire on *distance moved* instead. Drag and you spend damage; hold still and you
+spend nothing. Park the cursor mid-canvas and walk away and the file stays clean.
 
-**Marks are interpolated.** The multiplayer channel feeding `position` refreshes slower
-than a mouse moves, so a fast drag arrives as a handful of far-apart samples. Firing
-once per sample would give a dotted line; interpolating along the segment gives a
-continuous trail.
+**`clear` isn't scoped to this session.** Every mark is tagged as belonging to this
+plugin, and clearing sweeps the whole document for that tag, across every page. Reopen
+the plugin onto yesterday's mess and `clear` still finds it — which is exactly the state
+you're in when you open the plugin to an already-covered canvas. It never touches
+anything the plugin didn't create.
 
-**Bytes are uploaded once.** `figma.createImage` returns a hash that any number of
-fills can share, so every sprite frame is uploaded a single time at startup and a
-hundred marks cost a hundred cheap rectangles. A mark is then one node with one fill,
-placed once and left alone — no timers, no animation. That is also how the original
-works: there is no impact animation, only a random choice among the weapon's marks.
+## The nine weapons
 
-Sprite decoding, sheet slicing, hue baking and audio all live on the UI side, because
-the plugin sandbox has no base64 decoder, no canvas and no audio. The sandbox only ever
-receives raw PNG bytes. `tsconfig.main.json` omits `lib: DOM` specifically so the
-compiler enforces that split instead of letting it compile clean and fail at runtime.
+| | Weapon | What it leaves behind |
+| --- | --- | --- |
+| 1 | Hammer | Eight different cracks, one thud each |
+| 2 | Chain-saw | A continuous kerf with sawdust along it. The blade turns to face the way you cut. |
+| 3 | Machine gun | Bullet holes, rattling |
+| 4 | Flame-thrower | A fireball that blooms and burns out, leaving scorch marks. Sustained roar. |
+| 5 | Colour-thrower | Paint splats — five sprites repainted into eight colours, so 40 distinct splats |
+| 6 | Phaser | Big scorched blast craters |
+| 7 | Stamp | Ten different stamped impressions |
+| 8 | Termites | Live termites that land and then **crawl around your file** |
+| 9 | Washing | Wet smears and a sustained spray |
 
-## Both editors
+Most weapons drop a still image and leave it there — no animation, no timers. That's how
+the original worked too, and it's what makes a hundred marks cheap. Four weapons break
+that rule and are the interesting ones:
 
-`editorType` is `["figma", "figjam"]` and nothing branches on which one is running.
-Everything this plugin creates is a rectangle with an image fill, and FigJam explicitly
-permits `RectangleNode` — the FigJam restriction list is components and local styles,
-neither of which appear here.
+- **The chain-saw draws a line, not points.** It's the only mark that's about the path you
+  took rather than the points on it, and its blade rotates through eight compass headings
+  to face the direction of travel.
+- **Termites keep moving after they land.** A real crawl simulation, stepping every 140ms.
+- **The colour-thrower repaints its own art.** All five splats ship as the same pure red,
+  so recoloured copies are baked at startup to get 40 marks out of 5 sprites.
+- **The flame-thrower throws fire that doesn't stick.** The fireball animates and removes
+  itself, and the permanent scorch is held back so the fire gets there first.
 
-Two harmless consequences in FigJam: `figma.on('currentpagechange')` never fires,
-because FigJam files are single-page; and marks are appended to the page with absolute
-coordinates, so dragging a weapon across a section does not reparent them into it.
+Tuning numbers for all nine — fire rate, travel per mark, sprite geometry — live in
+[docs/weapons.md](docs/weapons.md), which is checked against the real files by
+`npm run verify`.
 
-One piece of trivia worth knowing before you read the API docs and panic: Figma
-documents `figma.activeUsers` — the property this entire plugin rests on — as
-*"only available in FigJam"*. That note is wrong. It works in both editors, verified on
-real canvases in both.
+⚠️ **A warning about the termites.** They're the one thing here that can genuinely bog a
+file down. Each is a node being moved every 140ms, there's no cap on how many you place,
+and the cost never comes back down on its own. A few dozen is comfortable; several
+hundred will make the file sluggish. `clear` is the release valve, and closing the plugin
+stops the crawl.
 
-## Controls
+## Nothing leaves your machine
 
-| Input             | Effect                                              |
-| ----------------- | --------------------------------------------------- |
-| Click a weapon    | Arm it. Click it again to holster.                  |
-| `clear` (footer)  | Remove every mark this plugin has ever left         |
-| `1`–`9`           | Arm by slot — same as clicking, see caveat          |
-| `C`               | Clear                                               |
-| `P`               | Cursor-tracking diagnostics. Keyboard-only.         |
-
-**Everything that matters is reachable by click, on purpose.** Keyboard shortcuts only
-fire while the plugin iframe holds focus, and the moment you move the cursor onto the
-canvas — the entire point of this plugin — focus is elsewhere and Figma swallows the
-keystroke. So the shortcuts are a convenience and never the only route to anything.
-
-The one exception is `P`. The probe is a developer diagnostic rather than a toy control,
-so it has no footer button; the footer carries only `clear`.
-
-That is also why the footer no longer reads `right button = back / Esc = quit` as the
-original's did. Neither could work: `Esc` never arrives, and a right-click on the
-canvas opens Figma's own context menu without the iframe ever seeing the event.
-Holstering moved onto the menu itself — click the armed weapon again.
-
-**`clear` is not scoped to this session.** Every node the plugin creates is stamped with
-plugin data, and clearing sweeps the whole document by that tag, across every page. So
-it finds marks left by a previous run — which is exactly the state someone is in when
-they reopen the plugin to a covered canvas and press clear. Stale weapon nodes get swept
-too. It never touches anything the plugin did not create.
-
-## Weapons
-
-All nine are playable. Art and sounds come from the windows93 recreation's rip,
-vendored under `ref/w93/`.
-
-| Slot | Weapon | `minTravel` | `fireRateMs` | Mark | Sound |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Hammer | 55 | 160 | 8 cracks, 64px | 8 one-shots |
-| 2 | Chain-saw | 12 | 60 | kerf line + 5 sawdust chips, 31px | sustained rev |
-| 3 | Machine gun | 40 | 110 | 4 bullet holes, 16px | one-shot |
-| 4 | Flame-thrower | 16 | 70 | 20-frame fireball + 4 scorches, 48px | sustained flame |
-| 5 | Color-thrower | 95 | 200 | 5 splats x 8 hues, 128px | one-shot |
-| 6 | Phaser | 80 | 320 | 10 blast marks, 128px | one-shot |
-| 7 | Stamp | 130 | 260 | 10 stamps, 96px | one-shot |
-| 8 | Termites | 55 | 120 | live termites that crawl, 31px | one-shot skitter |
-| 9 | Washing | 16 | 60 | 4 smears, 128px | sustained spray |
-
-Three of them do something other than "place a still and leave it":
-
-- **The chain-saw draws a line, not points**, and points the way you cut. Its `cut` lays
-  one rotated rectangle per cursor sample, joined end to end into a continuous black kerf,
-  with sawdust chips scattered along it — the only mark in the plugin that is about the
-  path rather than the points on it. Its blade also turns to face the direction of travel,
-  through the eight compass headings its sprite sheet was drawn with.
-- **Termites walk after they land.** A real crawl simulation, stepping every 140ms.
-  This is by far the most expensive thing the plugin does — see
-  [the swarm has no cap](docs/architecture.md#the-swarm-has-no-cap).
-- **The colour thrower recolours its own art.** Its five splats ship with one identical
-  palette, so hue-rotated copies are baked at startup to get 40 distinct marks out of 5
-  sprites.
-
-Full field-by-field reference in [docs/weapons.md](docs/weapons.md).
-
-## Diagnostics
-
-Two things rest on undocumented behaviour. Both are now confirmed on real canvases in
-both editors, but the panel that confirmed them is still there — hit `P` and move the
-cursor:
-
-- **Is `position` populated for the current user?** The docs describe
-  `ActiveUser.position` without confirming it reports your *own* cursor. The panel says
-  `OK` or `FAIL` outright. It says `OK`.
-- **What is the real refresh rate?** `effective rate` is distinct-position updates per
-  second and `largest jump` is the widest gap between consecutive samples. Together they
-  tell you how much interpolation a continuous trail needs.
-
-It also answers a question the canvas cannot: `shots dropped` counts marks thrown away by
-the per-sample cap, alongside how many samples it bit on. When `MAX_SHOTS_PER_SAMPLE` (8)
-is too low for a weapon's `minTravel` the trail is quietly thinner than it should be, and a
-sparse line looks exactly like a fast flick — this is the only place that shows up.
-
-## Layout
-
-```
-src/shared/   weapon registry, trail math, UI<->main protocol  (no Figma, no DOM)
-src/main/     sandbox: cursor polling, node creation, damage, the crawl
-src/ui/       iframe: menu replica, sprite slicing, hue baking, audio
-ref/w93/      vendored sprite sheets and sounds, one directory per weapon
-ref/          older rip and upstream weapon configs, kept for reference
-scripts/      esbuild bundler + asset inliner, sheet verifier, icon normalizer
-docs/         the long-form version of everything above
-```
+`networkAccess` is `none`. Every sprite and sound is baked into the bundle at build time,
+so the plugin has no reason to talk to the network and no permission to.
 
 ## Commands
 
@@ -169,24 +106,39 @@ docs/         the long-form version of everything above
 | `npm run check` | Build, verify, typecheck, test. Run before calling anything done. |
 | `npm run assets` | Regenerate icon sets from `assets/icons-src` (needs ImageMagick; not part of the build) |
 
-## Assets
+## Where things live
 
-`assets/icons-src/` holds the original 9 weapon PNGs and is never written to.
-`npm run assets` regenerates both derived sets from it:
-
-- `assets/icons/` — 256x256 uniform tiles, trimmed to content and centred, for the menu
-- `assets/cursors/` — tight-trimmed; generated but currently unused
-
-Menu geometry is not guesswork: the icon band sits at y 3–41 within each 60px cell
-and labels at y 47–53, measured by scanning the original screenshot for
-non-background rows. Colours were sampled from it too — `#270057` ground, `#6E862A`
-rule. Labels are transcribed character-for-character, including the original's own
-inconsistencies ("Machine gun" is lowercase, and slot 9 is missing the space after
-its colon). Don't tidy those.
+```
+src/shared/   weapon registry, trail math, UI<->main protocol  (no Figma, no DOM)
+src/main/     sandbox: cursor polling, node creation, damage, the crawl
+src/ui/       iframe: menu replica, sprite slicing, paint baking, audio
+assets/       menu icons — ours, generated from assets/icons-src
+ref/w93/      vendored sprite sheets and sounds, one directory per weapon
+ref/          older rip and upstream weapon configs, kept for reference
+scripts/      esbuild bundler + asset inliner, sheet verifier, icon normalizer
+docs/         the technical write-up
+```
 
 ## Docs
 
+Start with **[docs/how-it-works.md](docs/how-it-works.md)** — the short technical tour:
+why the plugin has to poll your cursor, why damage costs distance instead of time, what
+runs where, and how the menu was reconstructed.
+
+Then, in increasing depth:
+
 - [docs/architecture.md](docs/architecture.md) — the two-thread split and why the compiler enforces it, cursor polling, the trail math, the firing loop, the crawl, clearing, known loose ends
 - [docs/weapons.md](docs/weapons.md) — the weapon declaration field by field, tuning `minTravel` and offsets, the special cases, adding a weapon
-- [docs/assets.md](docs/assets.md) — the pipeline from source PNG to inlined data URI, the three asset maps, build output
+- [docs/assets.md](docs/assets.md) — the pipeline from source PNG to inlined data URI, the asset maps, build output
 - [docs/protocol.md](docs/protocol.md) — every message crossing the boundary, `FramePayload`, `ProbeStats`
+
+## Credits
+
+Desktop Destroyer was originally designed by **Miroslav Němeček**
+([gemtree.com](http://www.gemtree.com/program.htm)). The sprites and sounds used here come
+from the [windows93.net](https://windows93.net) recreation — ripped by **Jankenpopp** and
+**Zombectro**, with that version's code by **Zombectro**.
+
+This is an unofficial fan port built for MakerWeek. It vendors that artwork under
+`ref/w93/` rather than recreating it, which is worth understanding before sharing the
+repo any further — see [docs/attribution.md](docs/attribution.md).

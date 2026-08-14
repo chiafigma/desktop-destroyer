@@ -91,7 +91,7 @@ assets/icons-src/*.png              ref/w93/<weapon>/*.png + *.ogg
                         ▼
               dist/ui.html  (~912kb, self-contained)
                         │
-                        │  at runtime: slice sheets, bake tints
+                        │  at runtime: slice sheets, bake paints
                         ▼
               FramePayload[] → main → figma.createImage
 ```
@@ -101,7 +101,7 @@ Two stages run at different times:
 - **`npm run assets`** is manual and occasional. It needs ImageMagick, so it is deliberately not part of the build — a fresh clone must be buildable without it. Its output is committed.
 - **`npm run build`** regenerates `src/generated/assets.ts` on every run. That file is gitignored: it is derived, large, and would poison every diff.
 
-A third stage happens at **runtime**, not build time: sheet slicing and hue baking. Both need a canvas, so both live in the UI and run once at startup. See [Crossing the boundary](#crossing-the-boundary).
+A third stage happens at **runtime**, not build time: sheet slicing and paint baking. Both need a canvas, so both live in the UI and run once at startup. See [Crossing the boundary](#crossing-the-boundary).
 
 ## The two generated icon sets
 
@@ -189,7 +189,7 @@ The main thread never sees a data URI. It has no base64 decoder and no canvas, s
 
 1. UI decodes each data URI to bytes
 2. UI slices sheets into individual cells on canvas — `frames` columns x `states` rows
-3. UI bakes one hue-rotated copy per `tints` angle, for weapons that declare them
+3. UI bakes one repainted copy per `paints` colour, for weapons that declare them
 4. UI re-encodes each frame to PNG
 5. UI posts raw `Uint8Array` bytes across as `FramePayload[]`
 6. Main calls `figma.createImage()` once per frame and keeps the hash
