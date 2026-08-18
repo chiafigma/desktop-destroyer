@@ -51,6 +51,16 @@ export type FireBurst = {
    * node exists, ticks, and shows nothing, so the fire reads as lagging the cursor.
    */
   from: number;
+  /**
+   * Multiplier on the drawn size of the burst. Absent or 1 draws the cell at native size.
+   *
+   * A separate knob rather than a bigger `cellW`/`cellH` because those two are measured
+   * from the PNG and cross-checked by `npm run verify` — inflating them to make the fire
+   * bigger would break the slicer's idea of where the cell boundaries are and fail the
+   * build. Size on screen and size in the sheet are different questions; this is the
+   * first, `cellW`/`cellH` are the second.
+   */
+  scale?: number;
 };
 
 export type WeaponArt = {

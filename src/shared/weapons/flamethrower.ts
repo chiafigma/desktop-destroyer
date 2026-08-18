@@ -85,10 +85,16 @@ export const flamethrower: Weapon = {
     // These are the knobs for "the fire lags" (lower both) and "the fire is a strobe"
     // (raise frameMs). Neither is measured from anything — unlike the geometry above,
     // they are pure feel.
+    //
+    // `scale: 1.4` draws the 63x63 cell at 88x88. The cells are small next to this
+    // weapon's own 319x255 gun, so at native size the fireball read as a spark at the
+    // nozzle rather than something coming out of it. Note that the peak frames only cover
+    // about half the cell, so the visible flame is nearer 44px than 88.
     fire: {
       sheet: { key: '3-flame-thrower/press', frames: 20, states: 1, cellW: 63, cellH: 63 },
       frameMs: 24,
       from: 4,
+      scale: 1.4,
     },
     hits: [
       '3-flame-thrower/hit-1',

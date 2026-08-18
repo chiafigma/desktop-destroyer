@@ -477,10 +477,15 @@ function spawnFlame(weapon: Weapon, p: Point): void {
   // Locked for the same reason the weapon is: this is scaffolding that happens to be
   // under the cursor, and a click landing on it instead of the canvas would be wrong.
   node.locked = true;
-  node.resize(sheet.cellW, sheet.cellH);
+  // Drawn size, not sheet size: `scale` blows the cell up on canvas while `cellW`/`cellH`
+  // stay the measured truth about the PNG. Centred on the impact at whatever that works
+  // out to, so scaling grows the fireball around the hit rather than off to one side.
+  const w = sheet.cellW * (burst.scale ?? 1);
+  const h = sheet.cellH * (burst.scale ?? 1);
+  node.resize(w, h);
   node.strokes = [];
-  node.x = p.x - sheet.cellW / 2;
-  node.y = p.y - sheet.cellH / 2;
+  node.x = p.x - w / 2;
+  node.y = p.y - h / 2;
   node.fills = [fill];
 
   figma.currentPage.appendChild(node);
@@ -753,8 +758,17 @@ export function damageCount(): number {
  *   - a mark the user has since dragged into a frame or group is no longer a direct
  *     child of the page, so a shallow pass would miss it.
  *
- * `findAll` walks the whole document, which is not cheap, but this runs on an explicit
- * button press rather than in the firing loop.
+ * The search is `findAllWithCriteria` on the plugin-data key rather than `findAll` with a
+ * `node.getPluginData(TAG) !== ''` callback. Two reasons, and the first is a crash:
+ *
+ *   - `findAll` invokes our callback on every node in the document, and not everything it
+ *     visits answers to `getPluginData` at runtime — the typings promise `PageNode |
+ *     SceneNode`, but clearing a real file threw `TypeError: not a function` from inside
+ *     the callback, which Figma surfaces as `in findAll: "findAll" callback crashed` and
+ *     which aborts the whole sweep. The criteria form does the matching natively, so there
+ *     is no callback to crash and no node type we have to be right about.
+ *   - It is a filtered walk rather than a full one. Still not cheap on a large document,
+ *     but this runs on an explicit button press rather than in the firing loop.
  *
  * Stale weapon nodes are swept too. The weapon is scaffolding that is meant to be
  * removed on close, so any that outlived their session — a crash, a reload — are
@@ -774,7 +788,7 @@ export async function clearDamage(): Promise<number> {
   // Required before touching other pages under `documentAccess: dynamic-page`.
   await figma.loadAllPagesAsync();
 
-  const mine = figma.root.findAll((node) => node.getPluginData(TAG) !== '');
+  const mine = figma.root.findAllWithCriteria({ pluginData: { keys: [TAG] } });
 
   let removed = 0;
   for (const node of mine) {

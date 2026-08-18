@@ -28,6 +28,10 @@ export const hammer: Weapon = {
   cursorUpRateMs: 0,
   cursorOffset: { x: 0, y: 0 },
 
+  // The eight impacts are among the hottest rips in the set, and at a 160ms fire rate a
+  // drag lands six a second, so untrimmed the hammer sat well above everything else.
+  volume: 0.8,
+
   // All eight, exactly as upstream (`sounds: {hit: 8}`, chosen with randomItem).
   // This is the one weapon the pick-one-at-random model was made for: eight distinct
   // 0.5-1.1s impacts, one blow each, so repeated blows never sound like a loop.
@@ -55,7 +59,10 @@ export const hammer: Weapon = {
       '0-hammer/hit-7',
       '0-hammer/hit-8',
     ],
-    hitSize: 64,
+    // The crack PNGs are 64x64, so this draws them a third over native size. Upscaling
+    // 2-bit line art softens the edges a little; 84 is about as far as it goes before the
+    // outline reads as blurred rather than bold.
+    hitSize: 84,
   },
 };
 

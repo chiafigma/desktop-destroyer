@@ -254,7 +254,7 @@ The armed weapon is a single rectangle on canvas, named `⟦weaponId⟧` and tag
 
 `clearDamage()` removes every mark **this plugin has ever left in the document**, not merely the ones the current session drew.
 
-Every node the plugin creates is stamped with `setPluginData('desktop-destroyer', …)`, valued `damage` or `cursor` so the two can be told apart. Clearing walks `figma.root.findAll()` by that tag.
+Every node the plugin creates is stamped with `setPluginData('desktop-destroyer', …)`, valued `damage` or `cursor` so the two can be told apart. Clearing collects them with `figma.root.findAllWithCriteria({ pluginData: { keys: ['desktop-destroyer'] } })`.
 
 The tag is the authority rather than an in-memory list, for three reasons which all look identical to the user — a clear button that leaves marks behind:
 
@@ -265,7 +265,8 @@ The tag is the authority rather than an in-memory list, for three reasons which 
 Consequences worth knowing:
 
 - **It is `async`.** `figma.loadAllPagesAsync()` is required before touching other pages under `documentAccess: dynamic-page`.
-- **`findAll` walks the whole document**, which is not cheap — but this runs on an explicit button press, never in the firing loop.
+- **It searches the whole document**, which is not cheap — but this runs on an explicit button press, never in the firing loop.
+- **The criteria form, not `findAll` with a callback.** `findAll((n) => n.getPluginData(TAG) !== '')` crashes: it runs our callback on every node in the document, and not everything it visits answers to `getPluginData` at runtime, despite the typings promising `PageNode | SceneNode`. The failure is `TypeError: not a function` inside the callback, which Figma reports as `in findAll: "findAll" callback crashed` and which aborts the entire sweep — the button does nothing. `findAllWithCriteria` matches natively, so there is no callback to crash.
 - **Stale weapon nodes are swept too.** The weapon is scaffolding meant to be removed on close, so any that outlived their session — a crash, a reload — are litter by definition. The one currently in hand is spared.
 
 The in-memory `damage` array survives only as the cheap path for `damageCount()`.

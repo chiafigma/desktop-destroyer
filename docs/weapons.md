@@ -56,6 +56,7 @@ art: {
     sheet: { key: '3-flame-thrower/press', frames: 20, states: 1, cellW: 63, cellH: 63 },
     frameMs: 24,                    // ms per frame; upstream ran everything at 50
     from: 4,                        // first frame worth drawing
+    scale: 1.4,                     // drawn size multiplier; default 1 = native cell
   },
 
   paints: ['ff0000', 'ff7a00', …], // colours to repaint the paint into
@@ -94,12 +95,18 @@ empty spends that time as a node that exists, ticks, and shows nothing, which re
 fire trailing the cursor. The flame thrower's sheet opens on a fully blank frame and does
 not peak until frame 15 of 20 — at upstream's 50ms that is 750ms after the impact.
 
-So there are two knobs and they are not interchangeable:
+So there are three knobs and they are not interchangeable:
 
 | Knob | Question it answers | Kind of value |
 | --- | --- | --- |
 | `from` | Which frame is worth showing first? | property of the sheet — measure it |
 | `frameMs` | How fast does it run? | pure feel |
+| `scale` | How big is it on canvas? | pure feel; default 1 |
+
+`scale` multiplies the drawn size only — **not** `cellW`/`cellH`, which are measured from
+the PNG and proved by `npm run verify`, so inflating those to grow the fire moves the cell
+boundaries and fails the build. The flame thrower runs `scale: 1.4`, drawing its 63x63 cell
+at 88x88, because a 63px fireball on a 319x255 gun read as a spark at the nozzle.
 
 Measure before setting `from`, rather than guessing at a skip:
 
@@ -124,7 +131,7 @@ gun (`fireFrames: 14`, a 434x31 sheet of 31x31 cells) and the colour thrower
 
 | Slot | id | `fireRateMs` | `minTravel` | `dispersion` | `cursorUpRateMs` | `cursorOffset` | `hitSize` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `hammer` | 160 | 55 | 4 | 0 | 0, 0 | 64 |
+| 1 | `hammer` | 160 | 55 | 4 | 0 | 0, 0 | 84 |
 | 2 | `chainsaw` | 60 | 12 | 14 | 120 | -95, -95 | 31 |
 | 3 | `machinegun` | 110 | 40 | 9 | 0 | 0, 0 | 16 |
 | 4 | `flamethrower` | 70 | 16 | 6 | 75 | -107, -110 | 48 |
@@ -298,14 +305,16 @@ everything else.
 staggered burst plays at `level * (1 - i * 0.15)`, so the burst has a front to it instead
 of reading as one flat loud event.
 
-**`volume` is the "that one is too loud" knob**, not overall volume. Two weapons carry a
-trim, and both for the same reason — they run more simultaneous voices than anything else:
+**`volume` is the "that one is too loud" knob**, not overall volume. Three weapons carry a
+trim:
 
 - `machinegun: 0.7` — the fastest one-shot, stacking about four deep, with a hard transient.
 - `termites: 0.75` — its overlap is deliberate (that is how the skitter is built), so it is
   the busiest weapon in the pool.
+- `hammer: 0.8` — not voice count but level: the eight impacts are the hottest rips in the
+  set, and a drag lands six a second.
 
-The other seven are at 1.
+The other six are at 1.
 
 **Leaving a weapon silent is legitimate**, and so is leaving a ripped sound unused. Every
 weapon file documents which of its sounds it declined and why. The recurring reasons:
