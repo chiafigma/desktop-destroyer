@@ -8,15 +8,50 @@ The 1990s freeware stress-reliever, rebuilt as a Figma plugin. Pick a weapon fro
 Nine weapons: hammer, chain-saw, machine gun, flame-thrower, colour-thrower, phaser,
 stamp, termites, and a washing sponge. All nine work, in **Figma Design and FigJam**.
 
-## Try it
+## Get it
+
+There's no Figma Community listing — this is a development plugin, so you run it from
+source.
+
+**You'll need:**
+
+- The **Figma desktop app**. Importing a local plugin reads a file off your disk, which
+  the browser version can't do.
+- **Node 18 or newer** (built and tested on Node 22).
+- Git.
+
+**1. Clone and build:**
 
 ```
+git clone https://github.com/chiafigma/desktop-destroyer.git
+cd desktop-destroyer
 npm install
 npm run build
 ```
 
-Then in Figma: **Plugins → Development → Import plugin from manifest…** and choose
-`manifest.json`.
+Don't skip `npm run build`. `manifest.json` points at `dist/main.js` and `dist/ui.html`,
+and `dist/` isn't checked in — so a fresh clone has nothing to load until you've built it
+once.
+
+**2. Import it into Figma:**
+
+1. Open the **Figma desktop app** and open any Design or FigJam file.
+2. Go to **Plugins → Development → Import plugin from manifest…**
+3. Choose the `manifest.json` at the root of your clone.
+
+**3. Run it:** the plugin now appears under **Plugins → Development → Desktop Destroyer**.
+Click it to launch. After that, `⌥⌘P` re-runs it.
+
+**To update later:**
+
+```
+git pull
+npm install
+npm run build
+```
+
+Then re-run the plugin. Figma doesn't hot-reload, so a rebuild alone won't change what's
+already open.
 
 ## How to play
 
@@ -140,5 +175,6 @@ from the [windows93.net](https://windows93.net) recreation — ripped by **Janke
 **Zombectro**, with that version's code by **Zombectro**.
 
 This is an unofficial fan port built for MakerWeek. It vendors that artwork under
-`ref/w93/` rather than recreating it, which is worth understanding before sharing the
-repo any further — see [docs/attribution.md](docs/attribution.md).
+`ref/w93/` rather than recreating it, and carries no licence of its own because that
+artwork isn't ours to license. Full provenance in
+[docs/attribution.md](docs/attribution.md).

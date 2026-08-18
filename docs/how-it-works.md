@@ -1,7 +1,6 @@
 # How it works
 
-The short technical tour. Read this first, then follow the links into
-[architecture.md](architecture.md) where each piece is taken apart properly.
+The short technical tour. [architecture.md](architecture.md) goes deeper on each piece.
 
 ## The whole design follows from one missing API
 
