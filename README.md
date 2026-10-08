@@ -42,16 +42,6 @@ once.
 **3. Run it:** the plugin now appears under **Plugins → Development → Desktop Destroyer**.
 Click it to launch. After that, `⌥⌘P` re-runs it.
 
-**To update later:**
-
-```
-git pull
-npm install
-npm run build
-```
-
-Then re-run the plugin. Figma doesn't hot-reload, so a rebuild alone won't change what's
-already open.
 
 ## How to play
 
@@ -73,20 +63,6 @@ your cursor moves onto the canvas, which is the entire point of this plugin, Fig
 the keystroke instead. So the shortcuts are a convenience and never the only route to
 anything. Everything that matters is one click away in the menu.
 
-### Two things that will surprise you
-
-**There is no "hold to fire."** Figma doesn't tell plugins where your cursor is over the
-canvas, and it certainly doesn't say whether the button is down — the plugin infers your
-cursor from the multiplayer presence channel, which reports position and nothing else. So
-weapons fire on *distance moved* instead. Drag and you spend damage; hold still and you
-spend nothing. Park the cursor mid-canvas and walk away and the file stays clean.
-
-**`clear` isn't scoped to this session.** Every mark is tagged as belonging to this
-plugin, and clearing sweeps the whole document for that tag, across every page. Reopen
-the plugin onto yesterday's mess and `clear` still finds it — which is exactly the state
-you're in when you open the plugin to an already-covered canvas. It never touches
-anything the plugin didn't create.
-
 ## The nine weapons
 
 | | Weapon | What it leaves behind |
@@ -100,34 +76,6 @@ anything the plugin didn't create.
 | 7 | Stamp | Ten different stamped impressions |
 | 8 | Termites | Live termites that land and then **crawl around your file** |
 | 9 | Washing | Wet smears and a sustained spray |
-
-Most weapons drop a still image and leave it there — no animation, no timers. That's how
-the original worked too, and it's what makes a hundred marks cheap. Four weapons break
-that rule and are the interesting ones:
-
-- **The chain-saw draws a line, not points.** It's the only mark that's about the path you
-  took rather than the points on it, and its blade rotates through eight compass headings
-  to face the direction of travel.
-- **Termites keep moving after they land.** A real crawl simulation, stepping every 140ms.
-- **The colour-thrower repaints its own art.** All five splats ship as the same pure red,
-  so recoloured copies are baked at startup to get 40 marks out of 5 sprites.
-- **The flame-thrower throws fire that doesn't stick.** The fireball animates and removes
-  itself, and the permanent scorch is held back so the fire gets there first.
-
-Tuning numbers for all nine — fire rate, travel per mark, sprite geometry — live in
-[docs/weapons.md](docs/weapons.md), which is checked against the real files by
-`npm run verify`.
-
-⚠️ **A warning about the termites.** They're the one thing here that can genuinely bog a
-file down. Each is a node being moved every 140ms, there's no cap on how many you place,
-and the cost never comes back down on its own. A few dozen is comfortable; several
-hundred will make the file sluggish. `clear` is the release valve, and closing the plugin
-stops the crawl.
-
-## Nothing leaves your machine
-
-`networkAccess` is `none`. Every sprite and sound is baked into the bundle at build time,
-so the plugin has no reason to talk to the network and no permission to.
 
 ## Commands
 
